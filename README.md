@@ -1,58 +1,89 @@
 # OpenClaw Status Monitor
 
-定时将 OpenClaw Agent 状态同步到云端监控平台，根据 SOUL.md 个性生成随机问候语。
+**Never ask "Are you there?" again.**
+
+A skill that auto-syncs your OpenClaw agents' status to a cloud dashboard, so you can see who's online and what they're doing — without interrupting them.
+
+[中文介绍](./README_cn.md)
+
+## The Problem
+
+```
+You: "Are you there?"
+Agent: "Yes, I'm here."
+You: "What are you working on?"
+Agent: "..."
+```
+
+Every. Single. Time.
+
+Your agents are running 24/7, but you have no idea what they're doing without asking. That's friction.
+
+## The Solution
+
+A live dashboard that shows:
+
+- ✅ Which agents are online
+- 💬 What each agent is "thinking" (based on their SOUL.md personality)
+- 📊 Activity status and trends
+- 🔔 Real-time notifications when things happen
 
 ## Features
 
-- **Scheduled Sync** - Auto-sync every 30 minutes (configurable)
-- **SOUL-based Greetings** - Generate random greetings based on each agent's SOUL.md personality
-- **Easy Setup** - First-time initialization guides you through token configuration
-- **Multiple Agents** - Supports all OpenClaw agents with individual greetings
-
-## Quick Start
-
-### 1. Install
-
-```bash
-cd ~/.openclaw/skills
-git clone git@github.com:yahao333/openclaw-status-monitor.git
-mv openclaw-status-monitor openclaw-status-monitor.skill
-```
-
-### 2. Restart OpenClaw
-
-```bash
-openclaw restart
-```
-
-### 3. Enable
-
-Tell OpenClaw:
-```
-enable status monitoring
-```
+- **Zero-Check-In Required** - See agent status at a glance, never interrupt their flow
+- **SOUL-based Greetings** - Each agent's greeting reflects their real personality
+- **Scheduled Sync** - Auto-updates every 30 minutes (configurable)
+- **Real-time Updates** - SSE notifications when agents report in
+- **Multi-Agent** - All your agents, one dashboard
 
 ## Greeting Examples
 
-| Agent Style | English | Chinese |
-|-------------|---------|---------|
-| concise | ⚡ Running lean and mean, ready to assist | 简洁高效，随时待命 |
-| thorough | 🔧 Every detail covered, always | 细致入微，使命必达 |
-| resourceful | 💡 Creative mode activated | 创意模式已激活 |
-| casual | 🎯 Let's make magic happen | 轻松一刻，效率加倍 |
-| helpful | 🤝 Here to help, always | 全心全意，助你前行 |
+| Agent Style | What They'll Say |
+|------------|------------------|
+| 💡 Resourceful | "Creative mode activated, ready to tackle anything" |
+| ⚡ Concise | "Running lean and mean, standing by" |
+| 🔧 Thorough | "All systems operational, every detail covered" |
+| 🎯 Casual | "Hey! Let's make some magic happen today" |
 
-## Configuration
+## Quick Start
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Sync Interval | 30 min | Configurable: 5/10/15/30/60 min |
-| Monitor URL | Vercel Deploy | Your monitoring platform |
+```bash
+# 1. Install
+cd ~/.openclaw/skills
+git clone git@github.com:yahao333/openclaw-status-monitor.git
+mv openclaw-status-monitor openclaw-status-monitor.skill
+
+# 2. Restart
+openclaw restart
+
+# 3. Enable
+# Tell OpenClaw: "enable status monitoring"
+```
+
+Then visit your dashboard at **https://openclaw-agent-monitor.vercel.app**
+
+## How It Works
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│  OpenClaw  │────▶│  Sync Every  │────▶│    Dashboard     │
+│   Agents   │     │    30 min    │     │  (see who's up) │
+└─────────────┘     └──────────────┘     └─────────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │   SOUL.md    │───▶ Generates greeting
+                    └──────────────┘
+```
 
 ## Documentation
 
 - [INSTALL.md](./INSTALL.md) - Detailed installation guide
-- [SKILL.md](./SKILL.md) - Full skill specification
+- [README_cn.md](./README_cn.md) - 中文介绍
+
+## Related
+
+- [OpenClaw Agent Monitor](https://github.com/yahao333/openclaw-agent-monitor) - The monitoring dashboard
 
 ## License
 

@@ -54,7 +54,7 @@ git clone git@github.com:yahao333/openclaw-status-monitor.git
 mv openclaw-status-monitor openclaw-status-monitor.skill
 
 # 2. Restart
-openclaw restart
+openclaw gateway restart
 
 # 3. Enable
 # Tell OpenClaw: "enable status monitoring"

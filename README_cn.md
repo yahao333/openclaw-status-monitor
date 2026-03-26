@@ -52,7 +52,7 @@ git clone git@github.com:yahao333/openclaw-status-monitor.git
 mv openclaw-status-monitor openclaw-status-monitor.skill
 
 # 2. 重启
-openclaw restart
+openclaw gateway restart
 
 # 3. 启用
 # 对 OpenClaw 说："启用状态监控"

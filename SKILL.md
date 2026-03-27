@@ -235,8 +235,8 @@ const GREETING_TEMPLATES = [
     },
     "status": "online",
     "lastActive": {
-      "en": "{统一使用 meta.lastTouchedAt，所有 agent 相同}",
-      "zh": "{统一使用 meta.lastTouchedAt，所有 agent 相同}"
+      "en": "{当前系统 ISO 时间，所有 agent 相同}",
+      "zh": "{当前系统 ISO 时间，所有 agent 相同}"
     },
     "greeting": {
       "en": "{根据SOUL生成的英文问候语}",

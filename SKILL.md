@@ -15,8 +15,8 @@ metadata:
 
 当满足以下任一条件时触发：
 
-1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"
-2. **手动触发**：用户发送"同步状态"、"更新监控"、"上传状态"等
+1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"、"配置 status-monitor"
+2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"更新监控"、"上传状态"、"上传 status-monitor 状态"等
 3. **定时触发**：每 30 分钟（默认）自动执行
 4. **指定间隔**：用户说"每10分钟同步一次"、"改成1小时"等
 
@@ -235,8 +235,8 @@ const GREETING_TEMPLATES = [
     },
     "status": "online",
     "lastActive": {
-      "en": "{ISO时间}",
-      "zh": "{相对时间}"
+      "en": "{统一使用 meta.lastTouchedAt，所有 agent 相同}",
+      "zh": "{统一使用 meta.lastTouchedAt，所有 agent 相同}"
     },
     "greeting": {
       "en": "{根据SOUL生成的英文问候语}",

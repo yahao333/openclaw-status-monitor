@@ -45,20 +45,14 @@ Agent：...
 
 ## 快速开始
 
-```bash
-# 1. 安装
-cd ~/.openclaw/skills
-git clone git@github.com:yahao333/openclaw-status-monitor.git
-mv openclaw-status-monitor openclaw-status-monitor.skill
+详细安装说明请查看 [INSTALL.md](./INSTALL.md)。
 
-# 2. 重启
-openclaw gateway restart
+**基本步骤：**
+1. 安装到 OpenClaw skills 目录
+2. 运行 `openclaw gateway restart`
+3. 对 OpenClaw 说："启用状态监控"
 
-# 3. 启用
-# 对 OpenClaw 说："启用状态监控"
-```
-
-然后访问你的仪表盘：**https://openclaw-agent-monitor.vercel.app**
+然后访问 **https://openclaw-agent-monitor.vercel.app** 查看仪表盘。
 
 ## 工作原理
 

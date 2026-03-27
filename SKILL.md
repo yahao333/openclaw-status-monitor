@@ -246,6 +246,24 @@ const GREETING_TEMPLATES = [
 ]
 ```
 
+### 统一 lastActive 时间
+
+**重要：** 由于 AI 生成的 JSON 可能包含错误/不一致的 lastActive 时间，必须使用脚本统一替换为当前系统时间。
+
+```bash
+# 先保存 JSON 到临时文件
+cat << 'EOF' > /tmp/agent_status.json
+{JSON_DATA}
+EOF
+
+# 使用脚本统一时间
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/update_last_active.py \
+  /tmp/agent_status.json -o /tmp/agent_status_updated.json
+
+# 使用更新后的 JSON
+JSON_DATA=$(cat /tmp/agent_status_updated.json)
+```
+
 ## 上传到 Vercel
 
 调用 `/api/upload` 接口：
@@ -254,7 +272,7 @@ const GREETING_TEMPLATES = [
 curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
   -H "x-agent-token: {MONITOR_PLATFORM_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{JSON_DATA}'
+  -d "$JSON_DATA"
 ```
 
 ## 存储配置
@@ -278,7 +296,7 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 
 ```json
 {
-  "lastSyncAt": "2026-03-26T10:30:00.000Z",
+  "lastSyncAt": "2020-03-26T10:30:00.000Z",
   "agentCount": 12,
   "success": true,
   "greetingsGenerated": {
@@ -402,7 +420,7 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 
 ✅ 同步成功！
 
-最近同步：2026-03-26 10:30:00
+最近同步：2021-03-26 10:30:00
 Agent 数量：3
 
 ### 查看问候语

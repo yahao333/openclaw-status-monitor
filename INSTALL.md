@@ -12,9 +12,6 @@
 # 克隆到本地
 cd ~/.openclaw/skills
 git clone git@github.com:yahao333/openclaw-status-monitor.git
-
-# 重命名为 .skill 文件
-mv openclaw-status-monitor openclaw-status-monitor.skill
 ```
 
 ### 方式二：手动安装
@@ -34,7 +31,7 @@ mv openclaw-status-monitor openclaw-status-monitor.skill
 安装后需要重启 OpenClaw 使技能生效：
 ```bash
 # 重启 openclaw 服务
-openclaw restart
+openclaw gateway restart
 ```
 
 ### 2. 触发技能初始化

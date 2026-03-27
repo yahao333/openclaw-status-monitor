@@ -47,20 +47,14 @@ A live dashboard that shows:
 
 ## Quick Start
 
-```bash
-# 1. Install
-cd ~/.openclaw/skills
-git clone git@github.com:yahao333/openclaw-status-monitor.git
-mv openclaw-status-monitor openclaw-status-monitor.skill
+For detailed installation instructions, see [INSTALL.md](./INSTALL.md).
 
-# 2. Restart
-openclaw gateway restart
+**Basic steps:**
+1. Install to OpenClaw skills directory
+2. Run `openclaw gateway restart`
+3. Tell OpenClaw: "enable status monitoring"
 
-# 3. Enable
-# Tell OpenClaw: "enable status monitoring"
-```
-
-Then visit your dashboard at **https://openclaw-agent-monitor.vercel.app**
+Then visit **https://openclaw-agent-monitor.vercel.app** to see your dashboard.
 
 ## How It Works
 

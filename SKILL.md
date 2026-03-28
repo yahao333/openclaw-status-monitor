@@ -8,7 +8,7 @@ metadata:
     categories: [system, monitor]
     tags: [openclaw, status, sync, monitor, soul]
     user-invocable: true
-    cron: "*/30 * * * *"
+    cron: "*/5 * * * *"
 ---
 
 ## 触发条件
@@ -17,7 +17,7 @@ metadata:
 
 1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"、"配置 status-monitor"
 2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"更新监控"、"上传状态"、"上传 status-monitor 状态"、"同步龙虾的状态"、"上传龙虾的状态"等
-3. **定时触发**：每 30 分钟（默认）自动执行
+3. **定时触发**：每 5 分钟（默认）自动执行
 4. **指定间隔**：用户说"每10分钟同步一次"、"改成1小时"等
 
 ## 初始化流程（首次使用必须执行）
@@ -259,10 +259,10 @@ const GREETING_TEMPLATES = [
       "en": "{agentName}",
       "zh": "{agentName}"
     },
-    "status": "online",
+    "status": "{idle ≤ 5min ? 'online' : 'offline'}",
     "lastActive": {
-      "en": "",
-      "zh": ""
+      "en": "{从 sessions.json 提取的真实 ISO 时间}",
+      "zh": "{同上，ISO 格式}"
     },
     "greeting": {
       "en": "{根据SOUL生成的英文问候语}",
@@ -272,23 +272,48 @@ const GREETING_TEMPLATES = [
 ]
 ```
 
-### ⚠️ 必须执行：统一 lastActive 时间
+**status 和 lastActive 填充规则：**
+1. 读取 `~/.openclaw/agents/{agentId}/sessions/sessions.json`
+2. 找到该 agent 所有会话记录中的最大 `updatedAt`（Unix ms 时间戳）
+3. 计算 idle_minutes = (当前 UTC 时间 ms - updatedAt) / 60000
+4. 如果 idle_minutes > 5 → status = "offline"；否则 status = "online"
+5. 转换为 ISO 格式 UTC 作为 lastActive
+6. **无 sessions.json 或无会话记录 → 跳过该 agent，不上报**
 
-**重要：** AI 生成的 JSON 中 `lastActive` 可能包含错误时间（使用 `meta.lastTouchedAt` 或其他来源），必须通过以下脚本统一替换为当前系统 ISO 时间。此步骤不可省略！
+### ⚠️ 必须执行：从真实会话数据提取 status 和 lastActive
+
+**重要：** 禁止使用 `update_last_active.py` 或任何方式覆盖 `lastActive` 为当前时间。
 
 ```bash
-# 先保存 JSON 到临时文件
-cat << 'EOF' > /tmp/agent_status.json
-{JSON_DATA}
-EOF
+# 对于每个 agent，从 sessions.json 提取真实 lastActive 并判断 status
+now_ms=$(python3 -c "from datetime import datetime, timezone; print(int(datetime.now(timezone.utc).timestamp() * 1000))")
 
-# 使用脚本统一时间
-python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/update_last_active.py \
-  /tmp/agent_status.json -o /tmp/agent_status_updated.json
-
-# 使用更新后的 JSON
-JSON_DATA=$(cat /tmp/agent_status_updated.json)
+for agent_id in $(jq -r '.agents.list[].id' ~/.openclaw/openclaw.json); do
+  sessions_file="$HOME/.openclaw/agents/${agent_id}/sessions/sessions.json"
+  if [ -f "$sessions_file" ]; then
+    last_active_ms=$(jq '[to_entries[] | select(.key | startswith("agent:'$agent_id':")) | .value.updatedAt] | max' "$sessions_file" 2>/dev/null)
+    if [ -n "$last_active_ms" ] && [ "$last_active_ms" != "null" ]; then
+      idle_minutes=$(( (now_ms - last_active_ms) / 60000 ))
+      last_active=$(python3 -c "from datetime import datetime, timezone; print(datetime.fromtimestamp($last_active_ms/1000, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.') + f'{(($last_active_ms % 1000)):03d}Z')")
+      if [ $idle_minutes -gt 5 ]; then
+        echo "$agent_id: status=offline, lastActive=$last_active (idle=${idle_minutes}min)"
+      else
+        echo "$agent_id: status=online, lastActive=$last_active (idle=${idle_minutes}min)"
+      fi
+    else
+      echo "$agent_id: 无会话记录，跳过"
+    fi
+  else
+    echo "$agent_id: 无 sessions.json，跳过"
+  fi
+done
 ```
+
+**规则：**
+- 有真实会话记录且 idle ≤ 5 分钟：`status = "online"`
+- 有真实会话记录且 idle > 5 分钟：`status = "offline"`
+- 无会话记录或无 sessions.json：**跳过，不上报**
+- `lastActive` 必须为真实最后会话时间，禁止覆盖为当前时间
 
 ## 上传到 Vercel
 

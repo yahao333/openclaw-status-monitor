@@ -100,7 +100,23 @@ metadata:
 └── ...
 ```
 
-### 2. 读取 SOUL.md 提取关键词
+### 2. 获取 Agent 风格（配置优先，SOUL.md 兜底）
+
+**风格配置文件：** `~/.openclaw/credentials/openclaw-styles.json`
+
+```json
+{
+  "main": "concise",
+  "coding": "thorough",
+  "bob": "resourceful"
+}
+```
+
+**第一步：尝试从风格配置文件读取**
+
+检查 `~/.openclaw/credentials/openclaw-styles.json` 是否存在且包含该 agent 的风格标识（如 concise/thorough/resourceful/casual/professional/bold/default）。如果配置中有该 agent，直接使用该风格。
+
+**第二步：如果配置中没有，则从 SOUL.md 提取风格**
 
 从 SOUL.md 中提取以下信息：
 
@@ -108,6 +124,16 @@ metadata:
 - **性格特点**：helpful, concise, thorough, resourceful 等
 - **语气风格**：casual, professional, witty 等
 - **Core Truths 关键词**：genuinely helpful, have opinions, earn trust 等
+
+根据关键词匹配到风格标签（concise/thorough/resourceful/casual/professional/bold/default）。
+
+**第三步：保存风格到配置文件**
+
+将提取到的风格写入 `~/.openclaw/credentials/openclaw-styles.json`，便于后续同步直接使用，无需再次读取 SOUL.md。如果文件已存在，只追加/更新该 agent 的风格，不影响其他 agent 的配置。
+
+**第四步：用风格生成问候语**
+
+直接用拿到的风格标签去预设模板库匹配，生成对应问候语。
 
 ### 3. 生成随机问候语模板
 
@@ -126,10 +152,10 @@ metadata:
 ### 4.问候语生成算法
 
 ```
-1. 读取 agent 的 SOUL.md
-2. 提取关键词（最多3个）
-3. 从模板库选择匹配的模板
-4. 添加随机后缀（emoji + 时间相关）
+1. 检查 ~/.openclaw/credentials/openclaw-styles.json 是否有该 agent 的风格
+2. 如果没有，读取 SOUL.md 提取风格标签
+3. 将风格保存到 openclaw-styles.json（下次直接使用）
+4. 用风格标签从模板库选择匹配的模板
 5. 生成最终问候语
 ```
 
@@ -235,8 +261,8 @@ const GREETING_TEMPLATES = [
     },
     "status": "online",
     "lastActive": {
-      "en": "{当前系统 ISO 时间，所有 agent 相同}",
-      "zh": "{当前系统 ISO 时间，所有 agent 相同}"
+      "en": "",
+      "zh": ""
     },
     "greeting": {
       "en": "{根据SOUL生成的英文问候语}",
@@ -246,9 +272,9 @@ const GREETING_TEMPLATES = [
 ]
 ```
 
-### 统一 lastActive 时间
+### ⚠️ 必须执行：统一 lastActive 时间
 
-**重要：** 由于 AI 生成的 JSON 可能包含错误/不一致的 lastActive 时间，必须使用脚本统一替换为当前系统时间。
+**重要：** AI 生成的 JSON 中 `lastActive` 可能包含错误时间（使用 `meta.lastTouchedAt` 或其他来源），必须通过以下脚本统一替换为当前系统 ISO 时间。此步骤不可省略！
 
 ```bash
 # 先保存 JSON 到临时文件
@@ -284,7 +310,7 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 ```json
 {
   "agentToken": "e2d3262f-b626-4850-af11-5f2cb1c0dcad",
-  "createdAt": "2026-03-26T10:00:00.000Z",
+  "createdAt": "2026-01-26T10:00:00.000Z",
   "monitorUrl": "https://openclaw-agent-monitor.vercel.app",
   "syncIntervalMinutes": 30
 }
@@ -314,6 +340,7 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 | 上传 Token | `MONITOR_PLATFORM_TOKEN` | credentials 文件 | 无 | 必填 |
 | 同步间隔 | `OPENCLAW_SYNC_MINUTES` | credentials 文件 | 30 | 分钟 |
 | Vercel API URL | `OPENCLAW_MONITOR_URL` | credentials 文件 | https://openclaw-agent-monitor.vercel.app | 可自定义 |
+| Agent 风格 | 无 | `openclaw-styles.json` | 从 SOUL.md 提取 | 优先读取配置，缺失则从 SOUL.md 提取 |
 
 ## 错误处理
 
@@ -447,6 +474,7 @@ Agent 数量：3
 - 错误日志：`~/.openclaw/logs/sync-error.log`
 - 上次同步：`~/.openclaw/cron/last-sync.json`
 - Token 配置：`~/.openclaw/credentials/openclaw-status-monitor.json`
+- Agent 风格配置：`~/.openclaw/credentials/openclaw-styles.json`
 
 ## SOUL.md 个性映射表
 

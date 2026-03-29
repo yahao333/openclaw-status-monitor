@@ -2,7 +2,7 @@
 name: openclaw-status-monitor
 description: 管理 OpenClaw Agent 状态上传脚本，定时将 Agent 在线状态同步到云端监控平台
 author: yanghao
-version: 3.0.0
+version: 4.0.0
 metadata:
   openclaw:
     categories: [system, monitor]
@@ -16,25 +16,32 @@ metadata:
 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py
 ```
 
-## 脚本管理命令
+## 服务管理
+
+### 推荐：使用 --fork 启动守护进程
+
+使用 `--fork` 参数启动真正的后台守护进程（双重 fork）：
 
 | 命令 | 说明 |
 |------|------|
-| `python3 scripts/status_uploader.py start [--interval\|-i <分钟>]` | 启动服务（可指定间隔） |
-| `python3 scripts/status_uploader.py stop` | 停止上传服务 |
-| `python3 scripts/status_uploader.py status` | 查看服务状态和当前间隔 |
+| `python3 scripts/status_uploader.py start --fork` | 启动守护进程 |
+| `python3 scripts/status_uploader.py start --fork --interval 10` | 启动并指定间隔（分钟） |
+| `python3 scripts/status_uploader.py start --fork -i 10` | 同上，简写形式 |
+| `python3 scripts/status_uploader.py stop` | 停止服务 |
+| `python3 scripts/status_uploader.py status` | 查看服务状态 |
 | `python3 scripts/status_uploader.py set-interval <分钟>` | 设置同步间隔 |
-| `python3 scripts/status_uploader.py test` | 测试：单次执行上传 |
+| `python3 scripts/status_uploader.py test` | 单次测试上传 |
 
-**启动时指定间隔示例：**
+**示例：**
 ```bash
-python3 scripts/status_uploader.py start --interval 10
-python3 scripts/status_uploader.py start -i 15
-```
+# 启动守护进程（推荐方式）
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork
 
-**设置间隔示例：**
-```bash
-python3 scripts/status_uploader.py set-interval 10
+# 指定 10 分钟间隔
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 10
+
+# 查看状态
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status
 ```
 
 ## 触发条件
@@ -46,6 +53,7 @@ python3 scripts/status_uploader.py set-interval 10
 3. **查看状态**：用户发送"查看状态监控"、"状态监控状态"、"检查上传服务"
 4. **停止服务**：用户发送"停止状态监控"、"停止上传服务"
 5. **修改间隔**：用户发送"每10分钟同步一次"、"改成15分钟"等
+6. **重启服务**：用户发送"重启状态监控"、"重启上传服务"
 
 ## 初始化流程（首次使用必须执行）
 
@@ -55,7 +63,6 @@ python3 scripts/status_uploader.py set-interval 10
 
 1. 环境变量 `MONITOR_PLATFORM_TOKEN`
 2. 文件 `~/.openclaw/credentials/openclaw-status-monitor.json`
-3. 文件 `~/.openclaw/.env` 中的 `MONITOR_PLATFORM_TOKEN`
 
 ### 第二步：Token 不存在时的处理
 
@@ -102,10 +109,14 @@ python3 scripts/status_uploader.py set-interval 10
 监控平台地址：https://openclaw-agent-monitor.vercel.app
 上传间隔：5 分钟
 
+启动命令：
+python3 scripts/status_uploader.py start --fork
+
 管理命令：
 - 说"同步状态"手动触发一次上传
 - 说"查看状态监控"检查服务状态
 - 说"停止状态监控"停止服务
+- 说"重启状态监控"重启服务
 ```
 
 ## 核心功能：管理上传脚本
@@ -120,21 +131,21 @@ else
 fi
 ```
 
-### 2. 启动服务
+### 2. 启动服务（推荐方式）
 
 ```bash
-# 默认 5 分钟间隔
-python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start
-
-# 指定间隔（分钟）
-python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --interval 10
-python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start -i 15
+# 使用 --fork 启动守护进程（推荐）
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 10
 ```
 
 ### 3. 设置同步间隔
 
 ```bash
-python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py set-interval 10
+# 方式1：启动时指定
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 15
+
+# 方式2：使用 set-interval 命令
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py set-interval 15
 ```
 
 ### 4. 停止服务
@@ -151,10 +162,9 @@ python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py st
 
 ### 6. 查看错误日志
 
-检查以下日志文件中的错误：
-
 ```
 ~/.openclaw/logs/status_uploader_error.log
+~/.openclaw/logs/status_uploader.log
 ```
 
 ```bash
@@ -164,6 +174,8 @@ tail -50 ~/.openclaw/logs/status_uploader_error.log
 # 查看服务运行日志
 tail -50 ~/.openclaw/logs/status_uploader.log
 ```
+
+**日志轮转**：日志文件超过 10MB 时自动轮转，格式为 `status_uploader.20260329_183500.log`
 
 ### 7. 手动触发一次上传
 
@@ -237,7 +249,7 @@ cat ~/.openclaw/logs/status_uploader_error.log
 常见错误：
 - Token 未配置
 - 网络连接失败
-- jq 命令不可用
+- 端口被占用
 
 ### 4. Token 无效
 
@@ -301,7 +313,10 @@ cat ~/.openclaw/logs/status_uploader_error.log
 **Agent:**
 正在检查上传服务状态...
 
-服务状态：运行中，PID: 12345
+✅ 服务正在运行
+   PID: 12345
+   同步间隔: 5 分钟
+   日志文件: ~/.openclaw/logs/status_uploader.log
 
 最近运行日志：
 ```
@@ -317,8 +332,6 @@ cat ~/.openclaw/logs/status_uploader_error.log
 **Agent:**
 正在停止上传服务...
 
-已发送停止信号到 PID 12345
-
 ✅ 服务已停止
 
 如需重新启动，请说"启动状态监控"。
@@ -331,6 +344,14 @@ cat ~/.openclaw/logs/status_uploader_error.log
 
 在线 Agent：['main', 'coding']
 上传结果：✅ 成功
+
+### 重启服务
+
+**User:** 重启状态监控
+**Agent:**
+正在重启上传服务...
+
+✅ 服务已重启，PID: 67890
 
 ### 检查错误
 

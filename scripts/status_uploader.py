@@ -24,6 +24,7 @@ PID_FILE = LOG_DIR / "status_uploader.pid"
 LOG_FILE = LOG_DIR / "status_uploader.log"
 ERROR_LOG_FILE = LOG_DIR / "status_uploader_error.log"
 DEFAULT_SYNC_INTERVAL = 300  # 5分钟
+MAX_LOG_SIZE = 10 * 1024 * 1024  # 10MB 日志轮转阈值
 
 # 确保日志目录存在
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -198,8 +199,50 @@ def cleanup():
     PID_FILE.unlink(missing_ok=True)
 
 
-def daemon_mode(interval_seconds=None):
-    """守护进程模式"""
+def rotate_logs_if_needed():
+    """检查并轮转日志文件（超过 MAX_LOG_SIZE 时）"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    for log_file in [LOG_FILE, ERROR_LOG_FILE]:
+        if log_file.exists() and log_file.stat().st_size > MAX_LOG_SIZE:
+            rotated = log_file.with_suffix(f".{timestamp}.log")
+            log_file.rename(rotated)
+            logger.info(f"日志已轮转: {rotated.name}")
+
+
+def daemon_mode(interval_seconds=None, fork=False):
+    """守护进程模式
+
+    Args:
+        interval_seconds: 上传间隔（秒）
+        fork: 是否 fork 到后台（用于外部启动守护进程）
+    """
+    # 如果需要 fork
+    if fork:
+        try:
+            pid = os.fork()
+            if pid > 0:
+                # 父进程退出
+                sys.exit(0)
+        except OSError as e:
+            sys.stderr.write(f"Fork 失败: {e}\n")
+            sys.exit(1)
+
+        # 子进程：创建新会话
+        os.setsid()
+        # 再次 fork 防止再次获取控制终端
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+        # 重定向标准文件描述符
+        sys.stdout.flush()
+        sys.stderr.flush()
+        with open('/dev/null', 'r') as f:
+            os.dup2(f.fileno(), sys.stdin.fileno())
+        with open(LOG_FILE, 'a') as f:
+            os.dup2(f.fileno(), sys.stdout.fileno())
+            os.dup2(f.fileno(), sys.stderr.fileno())
+
     # 首次检查
     token = load_token()
     if not token:
@@ -226,6 +269,9 @@ def daemon_mode(interval_seconds=None):
 
     while True:
         try:
+            # 检查并轮转日志
+            rotate_logs_if_needed()
+
             agents = get_all_agents()
             if agents:
                 upload_status(agents)
@@ -246,13 +292,21 @@ if __name__ == "__main__":
         # start 命令支持 --interval 参数
         if cmd == "start":
             interval_seconds = None
+            fork_mode = False
             # 解析 --interval 或 -i 参数
-            if len(sys.argv) > 2 and sys.argv[2] == "--interval":
-                if len(sys.argv) > 3:
-                    interval_seconds = int(sys.argv[3]) * 60
-            elif len(sys.argv) > 2 and sys.argv[2] == "-i":
-                if len(sys.argv) > 3:
-                    interval_seconds = int(sys.argv[3]) * 60
+            i = 2
+            while i < len(sys.argv):
+                if sys.argv[i] == "--interval" and i + 1 < len(sys.argv):
+                    interval_seconds = int(sys.argv[i + 1]) * 60
+                    i += 2
+                elif sys.argv[i] == "-i" and i + 1 < len(sys.argv):
+                    interval_seconds = int(sys.argv[i + 1]) * 60
+                    i += 2
+                elif sys.argv[i] == "--fork":
+                    fork_mode = True
+                    i += 1
+                else:
+                    i += 1
 
             # 如果指定了间隔，保存到配置
             if interval_seconds is not None:
@@ -261,7 +315,7 @@ if __name__ == "__main__":
             if is_running():
                 print("服务已在运行中，如需新间隔请先停止再启动")
                 sys.exit(0)
-            daemon_mode(interval_seconds)
+            daemon_mode(interval_seconds, fork=fork_mode)
 
         elif cmd == "stop":
             if PID_FILE.exists():

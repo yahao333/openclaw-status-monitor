@@ -1,24 +1,38 @@
 ---
 name: openclaw-status-monitor
-description: 定时将 OpenClaw Agent 状态同步到云端监控平台，根据 SOUL.md 个性生成随机问候语
+description: 管理 OpenClaw Agent 状态上传脚本，定时将 Agent 在线状态同步到云端监控平台
 author: yanghao
-version: 1.2.0
+version: 3.0.0
 metadata:
   openclaw:
     categories: [system, monitor]
-    tags: [openclaw, status, sync, monitor, soul]
+    tags: [openclaw, status, sync, monitor]
     user-invocable: true
-    cron: "*/5 * * * *"
 ---
+
+## 脚本位置
+
+```
+~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py
+```
+
+## 脚本管理命令
+
+| 命令 | 说明 |
+|------|------|
+| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start` | 启动上传服务（守护进程） |
+| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py stop` | 停止上传服务 |
+| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status` | 查看服务状态 |
+| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py test` | 测试：单次执行上传 |
 
 ## 触发条件
 
 当满足以下任一条件时触发：
 
-1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"、"配置 status-monitor"
-2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"更新监控"、"上传状态"、"上传 status-monitor 状态"、"同步龙虾的状态"、"上传龙虾的状态"等
-3. **定时触发**：每 5 分钟（默认）自动执行
-4. **指定间隔**：用户说"每10分钟同步一次"、"改成1小时"等
+1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"、"配置 status-monitor"、"启动状态上传"
+2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"上传状态"等
+3. **查看状态**：用户发送"查看状态监控"、"状态监控状态"、"检查上传服务"
+4. **停止服务**：用户发送"停止状态监控"、"停止上传服务"
 
 ## 初始化流程（首次使用必须执行）
 
@@ -56,275 +70,90 @@ metadata:
      ```json
      {
        "agentToken": "用户提供的token",
-       "createdAt": "2026-03-26T10:00:00.000Z",
+       "createdAt": "2026-03-29T10:00:00.000Z",
        "monitorUrl": "https://openclaw-agent-monitor.vercel.app"
      }
      ```
 
-4. **验证 Token**：
-   - 调用 API 测试 Token 是否有效
-   - 如果无效，提示用户检查 Token 是否正确
+4. **验证 Token**
 
-### 第三步：Token 验证成功
+### 第三步：Token 验证成功后
 
 ```
 ✅ Token 配置成功！
 
-正在执行首次同步...
-- 检测到 X 个 Agent
-- 上传数据...
-- 同步成功！
+正在启动上传服务...
+- 执行首次同步测试...
+- ✅ 服务启动成功！
 
 监控平台地址：https://openclaw-agent-monitor.vercel.app
-同步间隔：30 分钟
+上传间隔：5 分钟
 
-您可以随时说"同步状态"手动触发同步。
+管理命令：
+- 说"同步状态"手动触发一次上传
+- 说"查看状态监控"检查服务状态
+- 说"停止状态监控"停止服务
 ```
 
-## 核心功能：读取 SOUL.md 生成问候语
+## 核心功能：管理上传脚本
 
-### 1. 收集所有 Agent 和他们的 SOUL.md
-
-遍历 `~/.openclaw/` 下的所有 workspace 目录，查找对应的 SOUL.md 文件：
-
-```
-~/.openclaw/
-├── workspace/           → main agent
-├── workspace-bob/        → bob agent
-├── workspace-coding/     → coding agent
-├── workspace-bot/        → bot agent
-├── workspace-writer/     → writer agent
-├── workspaces/code-expert/ → code-expert agent
-├── workspace-assistant/  → assistant agent
-├── workspace-st-*       → st-* agents
-└── ...
-```
-
-### 2. 获取 Agent 风格（配置优先，SOUL.md 兜底）
-
-**风格配置文件：** `~/.openclaw/credentials/openclaw-styles.json`
-
-```json
-{
-  "main": "concise",
-  "coding": "thorough",
-  "bob": "resourceful"
-}
-```
-
-**第一步：尝试从风格配置文件读取**
-
-检查 `~/.openclaw/credentials/openclaw-styles.json` 是否存在且包含该 agent 的风格标识（如 concise/thorough/resourceful/casual/professional/bold/default）。如果配置中有该 agent，直接使用该风格。
-
-**第二步：如果配置中没有，则从 SOUL.md 提取风格**
-
-从 SOUL.md 中提取以下信息：
-
-- **Vibe 描述**：`Be the assistant you'd actually want to talk to...`
-- **性格特点**：helpful, concise, thorough, resourceful 等
-- **语气风格**：casual, professional, witty 等
-- **Core Truths 关键词**：genuinely helpful, have opinions, earn trust 等
-
-根据关键词匹配到风格标签（concise/thorough/resourceful/casual/professional/bold/default）。
-
-**第三步：保存风格到配置文件**
-
-将提取到的风格写入 `~/.openclaw/credentials/openclaw-styles.json`，便于后续同步直接使用，无需再次读取 SOUL.md。如果文件已存在，只追加/更新该 agent 的风格，不影响其他 agent 的配置。
-
-**第四步：用风格生成问候语**
-
-直接用拿到的风格标签去预设模板库匹配，生成对应问候语。
-
-### 3. 生成随机问候语模板
-
-根据 SOUL.md 的内容，从预设模板库中选择问候语：
-
-| SOUL 关键词 | 适用模板 |
-|------------|----------|
-| concise | "简洁高效，随时待命" |
-| thorough | "细致入微，使命必达" |
-| resourceful | "足智多谋，迎难而上" |
-| casual/witty | "轻松一刻，效率加倍" |
-| helpful | "全心全意，助你前行" |
-| professional | "专业可靠，值得信赖" |
-| default | "运转正常，随时在线" |
-
-### 4.问候语生成算法
-
-```
-1. 检查 ~/.openclaw/credentials/openclaw-styles.json 是否有该 agent 的风格
-2. 如果没有，读取 SOUL.md 提取风格标签
-3. 将风格保存到 openclaw-styles.json（下次直接使用）
-4. 用风格标签从模板库选择匹配的模板
-5. 生成最终问候语
-```
-
-**问候语格式示例：**
-```json
-{
-  "greeting": {
-    "en": "⚡ Running smooth, ready to help. Concise & efficient as always.",
-    "zh": "⚡ 运转如常，随时待命。简洁高效，使命必达。"
-  }
-}
-```
-
-### 5. 预设问候语模板库
-
-```typescript
-const GREETING_TEMPLATES = [
-  {
-    keywords: ["concise", "efficient", "minimal"],
-    en: "Running lean and mean, ready to assist.",
-    zh: "轻装上阵，高效出击。"
-  },
-  {
-    keywords: ["thorough", "detailed", "comprehensive"],
-    en: "System operational. Every detail covered.",
-    zh: "系统就绪，滴水不漏。"
-  },
-  {
-    keywords: ["resourceful", "creative", "solve"],
-    en: "Creative problem-solving mode: activated.",
-    zh: "创意模式已激活，难题迎刃而解。"
-  },
-  {
-    keywords: ["casual", "witty", "fun"],
-    en: "All systems go! Let's make magic happen.",
-    zh: "一切就绪，让我们一起创造精彩！"
-  },
-  {
-    keywords: ["helpful", "support", "assist"],
-    en: "Here to help, nothing more, nothing less.",
-    zh: "全心全意，助你前行。"
-  },
-  {
-    keywords: ["professional", "reliable", "trust"],
-    en: "Professional mode engaged. Ready for action.",
-    zh: "专业模式启动，值得信赖。"
-  },
-  {
-    keywords: ["bold", "confident", "opinion"],
-    en: "Got opinions, got solutions. Let's do this.",
-    zh: "有态度，有方案，行动！"
-  },
-  {
-    keywords: ["default", "generic"],
-    en: "Systems online. Standing by.",
-    zh: "系统在线，随时待命。"
-  }
-];
-```
-
-## 读取 OpenClaw 状态
-
-### 从 openclaw.json 提取 agent 列表
-
-```json
-{
-  "meta": {
-    "version": "2026.2.26",
-    "lastTouchedAt": "2026-03-25T02:58:08.331Z"
-  },
-  "agents": {
-    "list": [
-      { "id": "main", "name": "大总管小菌" },
-      { "id": "coding", "name": "coding" },
-      { "id": "bot", "name": "bot" }
-    ]
-  }
-}
-```
-
-### Agent 到 SOUL.md 的映射
-
-| Agent ID | SOUL.md 路径 |
-|----------|--------------|
-| main | ~/.openclaw/workspace/SOUL.md |
-| bob | ~/.openclaw/workspace-bob/SOUL.md |
-| coding | ~/.openclaw/workspace-coding/SOUL.md |
-| bot | ~/.openclaw/workspace-bot/SOUL.md |
-| writer | ~/.openclaw/workspace-writer/SOUL.md |
-| * | ~/.openclaw/workspace-{agentId}/SOUL.md |
-
-## 转换为 Agent 格式
-
-将 OpenClaw agent + SOUL.md 个性转换为监控平台格式：
-
-```json
-[
-  {
-    "id": "openclaw-{agentId}",
-    "name": {
-      "en": "{agentName}",
-      "zh": "{agentName}"
-    },
-    "status": "{idle ≤ 5min ? 'online' : 'offline'}",
-    "lastActive": {
-      "en": "{从 sessions.json 提取的真实 ISO 时间}",
-      "zh": "{同上，ISO 格式}"
-    },
-    "greeting": {
-      "en": "{根据SOUL生成的英文问候语}",
-      "zh": "{根据SOUL生成的中文问候语}"
-    }
-  }
-]
-```
-
-**status 和 lastActive 填充规则：**
-1. 读取 `~/.openclaw/agents/{agentId}/sessions/sessions.json`
-2. 找到该 agent 所有会话记录中的最大 `updatedAt`（Unix ms 时间戳）
-3. 计算 idle_minutes = (当前 UTC 时间 ms - updatedAt) / 60000
-4. 如果 idle_minutes > 5 → status = "offline"；否则 status = "online"
-5. 转换为 ISO 格式 UTC 作为 lastActive
-6. **无 sessions.json 或无会话记录 → 跳过该 agent，不上报**
-
-### ⚠️ 必须执行：从真实会话数据提取 status 和 lastActive
-
-**重要：** 禁止使用 `update_last_active.py` 或任何方式覆盖 `lastActive` 为当前时间。
+### 1. 检查脚本是否存在
 
 ```bash
-# 对于每个 agent，从 sessions.json 提取真实 lastActive 并判断 status
-now_ms=$(python3 -c "from datetime import datetime, timezone; print(int(datetime.now(timezone.utc).timestamp() * 1000))")
-
-for agent_id in $(jq -r '.agents.list[].id' ~/.openclaw/openclaw.json); do
-  sessions_file="$HOME/.openclaw/agents/${agent_id}/sessions/sessions.json"
-  if [ -f "$sessions_file" ]; then
-    last_active_ms=$(jq '[to_entries[] | select(.key | startswith("agent:'$agent_id':")) | .value.updatedAt] | max' "$sessions_file" 2>/dev/null)
-    if [ -n "$last_active_ms" ] && [ "$last_active_ms" != "null" ]; then
-      idle_minutes=$(( (now_ms - last_active_ms) / 60000 ))
-      last_active=$(python3 -c "from datetime import datetime, timezone; print(datetime.fromtimestamp($last_active_ms/1000, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.') + f'{(($last_active_ms % 1000)):03d}Z')")
-      if [ $idle_minutes -gt 5 ]; then
-        echo "$agent_id: status=offline, lastActive=$last_active (idle=${idle_minutes}min)"
-      else
-        echo "$agent_id: status=online, lastActive=$last_active (idle=${idle_minutes}min)"
-      fi
-    else
-      echo "$agent_id: 无会话记录，跳过"
-    fi
-  else
-    echo "$agent_id: 无 sessions.json，跳过"
-  fi
-done
+if [ -f ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py ]; then
+  echo "脚本存在"
+else
+  echo "脚本不存在"
+fi
 ```
 
-**规则：**
-- 有真实会话记录且 idle ≤ 5 分钟：`status = "online"`
-- 有真实会话记录且 idle > 5 分钟：`status = "offline"`
-- 无会话记录或无 sessions.json：**跳过，不上报**
-- `lastActive` 必须为真实最后会话时间，禁止覆盖为当前时间
-
-## 上传到 Vercel
-
-调用 `/api/upload` 接口：
+### 2. 启动服务
 
 ```bash
-curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
-  -H "x-agent-token: {MONITOR_PLATFORM_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d "$JSON_DATA"
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start
 ```
+
+### 3. 停止服务
+
+```bash
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py stop
+```
+
+### 4. 检查服务状态
+
+```bash
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status
+```
+
+### 5. 查看错误日志
+
+检查以下日志文件中的错误：
+
+```
+~/.openclaw/logs/status_uploader_error.log
+```
+
+```bash
+# 查看最近错误
+tail -50 ~/.openclaw/logs/status_uploader_error.log
+
+# 查看服务运行日志
+tail -50 ~/.openclaw/logs/status_uploader.log
+```
+
+### 6. 手动触发一次上传
+
+```bash
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py test
+```
+
+### 上传逻辑（简化版）
+
+脚本只负责从 `openclaw.json` 读取所有 agent ID 并上传，**不做任何离线判断**。
+
+离线判断由监控平台（openclaw-agent-monitor）处理：
+- 监控平台根据上传时间自动更新 `lastActiveTimestamp`
+- 如果超过 5 分钟没有上传，监控平台自动标记为离线
 
 ## 存储配置
 
@@ -336,36 +165,16 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 {
   "agentToken": "e2d3262f-b626-4850-af11-5f2cb1c0dcad",
   "createdAt": "2026-01-26T10:00:00.000Z",
-  "monitorUrl": "https://openclaw-agent-monitor.vercel.app",
-  "syncIntervalMinutes": 30
+  "monitorUrl": "https://openclaw-agent-monitor.vercel.app"
 }
 ```
 
-### 上次同步记录
+## 日志位置
 
-`~/.openclaw/cron/last-sync.json`：
-
-```json
-{
-  "lastSyncAt": "2020-03-26T10:30:00.000Z",
-  "agentCount": 12,
-  "success": true,
-  "greetingsGenerated": {
-    "main": "简洁高效，随时待命 ⚡",
-    "coding": "细致入微，代码无痕 🔧",
-    "bot": "轻松一刻，效率加倍 🎯"
-  }
-}
-```
-
-## 配置项
-
-| 配置项 | 环境变量 | 配置文件 | 默认值 | 说明 |
-|--------|----------|----------|--------|------|
-| 上传 Token | `MONITOR_PLATFORM_TOKEN` | credentials 文件 | 无 | 必填 |
-| 同步间隔 | `OPENCLAW_SYNC_MINUTES` | credentials 文件 | 30 | 分钟 |
-| Vercel API URL | `OPENCLAW_MONITOR_URL` | credentials 文件 | https://openclaw-agent-monitor.vercel.app | 可自定义 |
-| Agent 风格 | 无 | `openclaw-styles.json` | 从 SOUL.md 提取 | 优先读取配置，缺失则从 SOUL.md 提取 |
+- 服务日志：`~/.openclaw/logs/status_uploader.log`
+- 错误日志：`~/.openclaw/logs/status_uploader_error.log`
+- PID 文件：`~/.openclaw/logs/status_uploader.pid`
+- Token 配置：`~/.openclaw/credentials/openclaw-status-monitor.json`
 
 ## 错误处理
 
@@ -385,13 +194,27 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 示例：我的 Token 是 abc123-def456...
 ```
 
-**运行时环境变量缺失**：
+### 2. 脚本不存在
+
 ```
-请设置环境变量 MONITOR_PLATFORM_TOKEN
-或将其添加到 ~/.openclaw/credentials/openclaw-status-monitor.json
+❌ 上传脚本不存在
+
+请重新安装技能或联系开发者。
 ```
 
-### 2. Token 无效
+### 3. 服务启动失败
+
+检查错误日志：
+```
+cat ~/.openclaw/logs/status_uploader_error.log
+```
+
+常见错误：
+- Token 未配置
+- 网络连接失败
+- jq 命令不可用
+
+### 4. Token 无效
 
 ```
 ❌ Token 验证失败
@@ -404,19 +227,6 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 3. 点击 Generate 生成新 Token
 4. 将新 Token 发送给我
 ```
-
-### 3. 缺少 SOUL.md
-
-如果某个 agent 没有 SOUL.md，使用默认问候语：
-```
-"系统在线，随时待命 📡"
-```
-
-### 4. 网络错误
-
-- 记录错误到 `~/.openclaw/logs/sync-error.log`
-- 返回友好提示
-- 下次同步时自动重试
 
 ## 示例对话
 
@@ -435,81 +245,78 @@ curl -X POST "https://openclaw-agent-monitor.vercel.app/api/upload" \
 3. 登录后在 **Settings** 页面生成 Agent Token
 4. 将 Token 发送给我
 
+---
+
 **User:** 我的 Token 是 e2d3262f-b626-4850-af11-5f2cb1c0dcad
 **Agent:**
 正在验证 Token...
 
 ✅ Token 验证成功！
 
-正在读取 Agent 个性（SOUL.md）...
-- 大总管小菌：简洁高效，随时待命 ⚡
-- coding：细致入微，使命必达 🔧
-- bot：轻松一刻，效率加倍 🎯
-
-执行首次同步...
-- 检测到 3 个 Agent
-- 上传数据...
-- ✅ 同步成功！
+正在启动上传服务...
+- 执行首次同步测试...
+- ✅ 服务启动成功！
 
 ---
 
 ✅ **状态监控已启用！**
 
 - 监控平台：https://openclaw-agent-monitor.vercel.app
-- 同步间隔：30 分钟
-- 最近同步：2026-03-26 10:30:00
+- 上传间隔：5 分钟
+- 服务状态：运行中
 
-### 正常运行
+管理命令：
+- 说"同步状态"手动触发一次上传
+- 说"查看状态监控"检查服务状态
+- 说"停止状态监控"停止服务
+
+### 查看服务状态
+
+**User:** 查看状态监控
+**Agent:**
+正在检查上传服务状态...
+
+服务状态：运行中，PID: 12345
+
+最近运行日志：
+```
+2026-03-29 10:30:01 - INFO - 上传成功: ['main', 'coding']
+2026-03-29 10:35:02 - INFO - 上传成功: ['main', 'coding']
+```
+
+错误日志：无
+
+### 停止服务
+
+**User:** 停止状态监控
+**Agent:**
+正在停止上传服务...
+
+已发送停止信号到 PID 12345
+
+✅ 服务已停止
+
+如需重新启动，请说"启动状态监控"。
+
+### 手动同步
 
 **User:** 同步状态
 **Agent:**
-正在同步 OpenClaw 状态...
+正在执行手动上传...
 
-正在读取 Agent 个性...
-- 大总管小菌：⚡ 运转如常
-- coding：🔧 代码无痕
-- ...
+在线 Agent：['main', 'coding']
+上传结果：✅ 成功
 
-✅ 同步成功！
+### 检查错误
 
-最近同步：2021-03-26 10:30:00
-Agent 数量：3
-
-### 查看问候语
-
-**User:** 给我看看现在的问候语
+**User:** 查看状态监控错误日志
 **Agent:**
-当前各 Agent 的问候语：
+正在检查错误日志...
 
-1. **大总管小菌**
-   - 英文：Running lean and mean, ready to assist.
-   - 中文：简洁高效，随时待命 ⚡
+最近错误：
+```
+2026-03-29 09:15:03 - HTTP 401: Unauthorized
+2026-03-29 09:20:01 - Network: [Errno 8] nodename nor servname provided
+```
 
-2. **coding**
-   - 英文：System operational. Every detail covered.
-   - 中文：细致入微，使命必达 🔧
-
-3. **bot**
-   - 英文：Creative problem-solving mode: activated.
-   - 中文：创意模式已激活，难题迎刃而解 🚀
-
-## 日志位置
-
-- 同步日志：`~/.openclaw/logs/sync.log`
-- 错误日志：`~/.openclaw/logs/sync-error.log`
-- 上次同步：`~/.openclaw/cron/last-sync.json`
-- Token 配置：`~/.openclaw/credentials/openclaw-status-monitor.json`
-- Agent 风格配置：`~/.openclaw/credentials/openclaw-styles.json`
-
-## SOUL.md 个性映射表
-
-| 关键词 | 英文问候语 | 中文问候语 | Emoji |
-|--------|-----------|-----------|-------|
-| concise | Running lean and mean | 轻装上阵 | ⚡ |
-| thorough | Every detail covered | 滴水不漏 | 🔧 |
-| resourceful | Creative mode activated | 创意模式已激活 | 💡 |
-| casual | Let's make magic happen | 让我们创造精彩 | 🎯 |
-| helpful | Here to help, always | 全心全意 | 🤝 |
-| professional | Professional mode engaged | 专业模式启动 | 🎩 |
-| bold | Got opinions, got solutions | 有态度有方案 | 💪 |
-| default | Systems online | 系统在线 | 📡 |
+建议：请检查 Token 是否正确，或检查网络连接。

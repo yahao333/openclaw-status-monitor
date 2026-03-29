@@ -267,6 +267,9 @@ def daemon_mode(interval_seconds=None, fork=False):
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
 
+    last_upload_success = True
+    recovery_check_interval = 30  # 网络恢复检测间隔（秒）
+
     while True:
         try:
             # 检查并轮转日志
@@ -274,15 +277,22 @@ def daemon_mode(interval_seconds=None, fork=False):
 
             agents = get_all_agents()
             if agents:
-                upload_status(agents)
+                success = upload_status(agents)
+                last_upload_success = success
             else:
                 logger.info("无 Agent，跳过本次上传")
         except Exception as e:
             logger.error(f"执行异常: {e}")
             with open(ERROR_LOG_FILE, "a") as f:
                 f.write(f"{datetime.now(timezone.utc).isoformat()} - Loop Exception: {e}\n")
+            last_upload_success = False
 
-        time.sleep(interval_seconds)
+        # 根据上次上传状态决定等待时间
+        if last_upload_success:
+            time.sleep(interval_seconds)
+        else:
+            # 上次失败，等待较短时间后重试（网络恢复检测）
+            time.sleep(recovery_check_interval)
 
 
 if __name__ == "__main__":

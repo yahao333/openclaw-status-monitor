@@ -20,10 +20,22 @@ metadata:
 
 | 命令 | 说明 |
 |------|------|
-| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start` | 启动上传服务（守护进程） |
-| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py stop` | 停止上传服务 |
-| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status` | 查看服务状态 |
-| `python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py test` | 测试：单次执行上传 |
+| `python3 scripts/status_uploader.py start [--interval\|-i <分钟>]` | 启动服务（可指定间隔） |
+| `python3 scripts/status_uploader.py stop` | 停止上传服务 |
+| `python3 scripts/status_uploader.py status` | 查看服务状态和当前间隔 |
+| `python3 scripts/status_uploader.py set-interval <分钟>` | 设置同步间隔 |
+| `python3 scripts/status_uploader.py test` | 测试：单次执行上传 |
+
+**启动时指定间隔示例：**
+```bash
+python3 scripts/status_uploader.py start --interval 10
+python3 scripts/status_uploader.py start -i 15
+```
+
+**设置间隔示例：**
+```bash
+python3 scripts/status_uploader.py set-interval 10
+```
 
 ## 触发条件
 
@@ -33,6 +45,7 @@ metadata:
 2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"上传状态"等
 3. **查看状态**：用户发送"查看状态监控"、"状态监控状态"、"检查上传服务"
 4. **停止服务**：用户发送"停止状态监控"、"停止上传服务"
+5. **修改间隔**：用户发送"每10分钟同步一次"、"改成15分钟"等
 
 ## 初始化流程（首次使用必须执行）
 
@@ -110,22 +123,33 @@ fi
 ### 2. 启动服务
 
 ```bash
+# 默认 5 分钟间隔
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start
+
+# 指定间隔（分钟）
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --interval 10
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start -i 15
 ```
 
-### 3. 停止服务
+### 3. 设置同步间隔
+
+```bash
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py set-interval 10
+```
+
+### 4. 停止服务
 
 ```bash
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py stop
 ```
 
-### 4. 检查服务状态
+### 5. 检查服务状态
 
 ```bash
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status
 ```
 
-### 5. 查看错误日志
+### 6. 查看错误日志
 
 检查以下日志文件中的错误：
 
@@ -141,7 +165,7 @@ tail -50 ~/.openclaw/logs/status_uploader_error.log
 tail -50 ~/.openclaw/logs/status_uploader.log
 ```
 
-### 6. 手动触发一次上传
+### 7. 手动触发一次上传
 
 ```bash
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py test
@@ -165,7 +189,8 @@ python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py te
 {
   "agentToken": "e2d3262f-b626-4850-af11-5f2cb1c0dcad",
   "createdAt": "2026-01-26T10:00:00.000Z",
-  "monitorUrl": "https://openclaw-agent-monitor.vercel.app"
+  "monitorUrl": "https://openclaw-agent-monitor.vercel.app",
+  "syncIntervalMinutes": 5
 }
 ```
 

@@ -10,6 +10,7 @@ import json
 import time
 import signal
 import logging
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,10 +20,10 @@ CREDENTIALS_FILE = HOME / ".openclaw/credentials/openclaw-status-monitor.json"
 AGENTS_DIR = HOME / ".openclaw/agents"
 OPENCLAW_JSON = HOME / ".openclaw/openclaw.json"
 LOG_DIR = HOME / ".openclaw/logs"
-PID_FILE = HOME / ".openclaw/logs/status_uploader.pid"
+PID_FILE = LOG_DIR / "status_uploader.pid"
 LOG_FILE = LOG_DIR / "status_uploader.log"
 ERROR_LOG_FILE = LOG_DIR / "status_uploader_error.log"
-SYNC_INTERVAL = 300  # 5分钟
+DEFAULT_SYNC_INTERVAL = 300  # 5分钟
 
 # 确保日志目录存在
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,6 +64,38 @@ def get_monitor_url():
             return data.get("monitorUrl", "https://openclaw-agent-monitor.vercel.app")
 
     return "https://openclaw-agent-monitor.vercel.app"
+
+
+def load_sync_interval():
+    """从配置文件加载同步间隔（秒）"""
+    if CREDENTIALS_FILE.exists():
+        try:
+            with open(CREDENTIALS_FILE) as f:
+                data = json.load(f)
+                interval_minutes = data.get("syncIntervalMinutes")
+                if interval_minutes:
+                    return interval_minutes * 60
+        except Exception:
+            pass
+    return DEFAULT_SYNC_INTERVAL
+
+
+def save_sync_interval(minutes):
+    """保存同步间隔到配置文件"""
+    try:
+        data = {}
+        if CREDENTIALS_FILE.exists():
+            with open(CREDENTIALS_FILE) as f:
+                data = json.load(f)
+        data["syncIntervalMinutes"] = minutes
+        CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(CREDENTIALS_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        logger.info(f"已保存同步间隔: {minutes} 分钟")
+        return True
+    except Exception as e:
+        logger.error(f"保存同步间隔失败: {e}")
+        return False
 
 
 def get_agent_ids():
@@ -165,7 +198,7 @@ def cleanup():
     PID_FILE.unlink(missing_ok=True)
 
 
-def daemon_mode():
+def daemon_mode(interval_seconds=None):
     """守护进程模式"""
     # 首次检查
     token = load_token()
@@ -173,10 +206,14 @@ def daemon_mode():
         logger.error("未配置 Token，请先运行 'openclaw skills enable status-monitor' 配置")
         sys.exit(1)
 
+    # 如果没有指定间隔，从配置文件加载
+    if interval_seconds is None:
+        interval_seconds = load_sync_interval()
+
     # 保存 PID
     save_pid()
     logger.info(f"状态上传服务启动，PID: {os.getpid()}")
-    logger.info(f"上传间隔: {SYNC_INTERVAL} 秒")
+    logger.info(f"上传间隔: {interval_seconds} 秒 ({interval_seconds // 60} 分钟)")
 
     # 设置信号处理
     def signal_handler(signum, frame):
@@ -199,17 +236,33 @@ def daemon_mode():
             with open(ERROR_LOG_FILE, "a") as f:
                 f.write(f"{datetime.now(timezone.utc).isoformat()} - Loop Exception: {e}\n")
 
-        time.sleep(SYNC_INTERVAL)
+        time.sleep(interval_seconds)
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
+
+        # start 命令支持 --interval 参数
         if cmd == "start":
+            interval_seconds = None
+            # 解析 --interval 或 -i 参数
+            if len(sys.argv) > 2 and sys.argv[2] == "--interval":
+                if len(sys.argv) > 3:
+                    interval_seconds = int(sys.argv[3]) * 60
+            elif len(sys.argv) > 2 and sys.argv[2] == "-i":
+                if len(sys.argv) > 3:
+                    interval_seconds = int(sys.argv[3]) * 60
+
+            # 如果指定了间隔，保存到配置
+            if interval_seconds is not None:
+                save_sync_interval(interval_seconds // 60)
+
             if is_running():
-                print("服务已在运行中")
+                print("服务已在运行中，如需新间隔请先停止再启动")
                 sys.exit(0)
-            daemon_mode()
+            daemon_mode(interval_seconds)
+
         elif cmd == "stop":
             if PID_FILE.exists():
                 with open(PID_FILE) as f:
@@ -222,21 +275,38 @@ if __name__ == "__main__":
                     cleanup()
             else:
                 print("服务未运行")
+
         elif cmd == "status":
             if is_running():
                 with open(PID_FILE) as f:
                     pid = f.read().strip()
+                current_interval = load_sync_interval()
                 print(f"服务正在运行，PID: {pid}")
+                print(f"上传间隔: {current_interval} 秒 ({current_interval // 60} 分钟)")
             else:
                 print("服务未运行")
+
+        elif cmd == "set-interval":
+            if len(sys.argv) > 2:
+                minutes = int(sys.argv[2])
+                interval_seconds = minutes * 60
+                save_sync_interval(minutes)
+                print(f"已设置同步间隔: {minutes} 分钟")
+                if is_running():
+                    print("请重启服务使设置生效: stop && start")
+            else:
+                print("用法: status_uploader.py set-interval <分钟>")
+
         elif cmd == "test":
             agents = get_all_agents()
             print(f"所有 Agent: {agents}")
             if agents:
                 upload_status(agents)
+
         else:
             print(f"未知命令: {cmd}")
-            print("用法: status_uploader.py [start|stop|status|test]")
+            print("用法: status_uploader.py [start|stop|status|set-interval|test]")
+            print("      start [--interval|-i <分钟>]")
     else:
         # 单次执行
         agents = get_all_agents()

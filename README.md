@@ -69,9 +69,20 @@ The skill provides simple commands to manage the uploader:
 | Command | Description |
 |---------|-------------|
 | `python3 scripts/status_uploader.py start` | Start the uploader daemon |
+| `python3 scripts/status_uploader.py start --interval 10` | Start with custom interval (minutes) |
 | `python3 scripts/status_uploader.py stop` | Stop the uploader daemon |
-| `python3 scripts/status_uploader.py status` | Check if daemon is running |
+| `python3 scripts/status_uploader.py status` | Check daemon status and interval |
+| `python3 scripts/status_uploader.py set-interval 10` | Change sync interval |
 | `python3 scripts/status_uploader.py test` | Run a one-time upload test |
+
+**Examples:**
+```bash
+# Start with 10-minute interval
+python3 scripts/status_uploader.py start --interval 10
+
+# Change interval to 15 minutes
+python3 scripts/status_uploader.py set-interval 15
+```
 
 ## Documentation
 

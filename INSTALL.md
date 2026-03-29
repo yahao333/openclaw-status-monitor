@@ -71,6 +71,7 @@ Token 配置成功后，会自动启动上传服务。
 | `启用状态监控` | 首次启用引导 |
 | `查看状态监控` | 检查服务状态 |
 | `停止状态监控` | 停止上传服务 |
+| `每10分钟同步一次` | 修改同步间隔 |
 
 ## 上传脚本管理
 
@@ -78,10 +79,21 @@ Token 配置成功后，会自动启动上传服务。
 
 | 命令 | 说明 |
 |------|------|
-| `python3 scripts/status_uploader.py start` | 启动上传服务（守护进程） |
+| `python3 scripts/status_uploader.py start` | 启动上传服务（默认5分钟间隔） |
+| `python3 scripts/status_uploader.py start --interval 10` | 启动并指定间隔（分钟） |
 | `python3 scripts/status_uploader.py stop` | 停止上传服务 |
-| `python3 scripts/status_uploader.py status` | 查看服务状态 |
+| `python3 scripts/status_uploader.py status` | 查看服务状态和当前间隔 |
+| `python3 scripts/status_uploader.py set-interval 10` | 设置同步间隔（分钟） |
 | `python3 scripts/status_uploader.py test` | 单次测试上传 |
+
+**示例：**
+```bash
+# 启动时指定 10 分钟间隔
+python3 scripts/status_uploader.py start --interval 10
+
+# 修改间隔为 15 分钟
+python3 scripts/status_uploader.py set-interval 15
+```
 
 ## 上传间隔
 
@@ -103,10 +115,19 @@ OpenClaw Agent ──▶ Python 脚本 ──▶ Dashboard API
 
 | 文件 | 说明 |
 |------|------|
-| `~/.openclaw/credentials/openclaw-status-monitor.json` | Token 配置 |
+| `~/.openclaw/credentials/openclaw-status-monitor.json` | Token 和同步间隔配置 |
 | `~/.openclaw/logs/status_uploader.log` | 服务运行日志 |
 | `~/.openclaw/logs/status_uploader_error.log` | 错误日志 |
 | `~/.openclaw/logs/status_uploader.pid` | 进程 PID |
+
+**配置文件示例：**
+```json
+{
+  "agentToken": "your-token-here",
+  "monitorUrl": "https://openclaw-agent-monitor.vercel.app",
+  "syncIntervalMinutes": 5
+}
+```
 
 ## 常见问题
 

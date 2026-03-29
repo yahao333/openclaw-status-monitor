@@ -64,10 +64,21 @@ Agent：...
 
 | 命令 | 说明 |
 |------|------|
-| `python3 scripts/status_uploader.py start` | 启动上传服务（守护进程） |
+| `python3 scripts/status_uploader.py start` | 启动上传服务（默认5分钟间隔） |
+| `python3 scripts/status_uploader.py start --interval 10` | 启动并指定间隔（分钟） |
 | `python3 scripts/status_uploader.py stop` | 停止上传服务 |
-| `python3 scripts/status_uploader.py status` | 查看服务状态 |
+| `python3 scripts/status_uploader.py status` | 查看服务状态和当前间隔 |
+| `python3 scripts/status_uploader.py set-interval 10` | 设置同步间隔（分钟） |
 | `python3 scripts/status_uploader.py test` | 单次测试上传 |
+
+**示例：**
+```bash
+# 启动时指定 10 分钟间隔
+python3 scripts/status_uploader.py start --interval 10
+
+# 修改间隔为 15 分钟
+python3 scripts/status_uploader.py set-interval 15
+```
 
 ## 相关文档
 

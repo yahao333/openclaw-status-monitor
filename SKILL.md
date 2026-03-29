@@ -16,17 +16,27 @@ metadata:
 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py
 ```
 
-## 服务管理
+## 两种运行模式
 
-### 推荐：使用 --fork 启动守护进程
+### 模式一：Cron 定时同步（默认）
 
-使用 `--fork` 参数启动真正的后台守护进程（双重 fork）：
+OpenClaw 内置 cron 定时执行，单次调用上传脚本：
+
+```bash
+# OpenClaw cron 定时调用（无 start 参数）
+python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py
+```
+
+**触发命令**：说"同步状态"、"重启同步状态"等，OpenClaw 会定时触发执行。
+
+### 模式二：守护进程模式
+
+需要持续后台运行时，使用 `--fork` 启动真正的守护进程：
 
 | 命令 | 说明 |
 |------|------|
 | `python3 scripts/status_uploader.py start --fork` | 启动守护进程 |
 | `python3 scripts/status_uploader.py start --fork --interval 10` | 启动并指定间隔（分钟） |
-| `python3 scripts/status_uploader.py start --fork -i 10` | 同上，简写形式 |
 | `python3 scripts/status_uploader.py stop` | 停止服务 |
 | `python3 scripts/status_uploader.py status` | 查看服务状态 |
 | `python3 scripts/status_uploader.py set-interval <分钟>` | 设置同步间隔 |
@@ -34,14 +44,11 @@ metadata:
 
 **示例：**
 ```bash
-# 启动守护进程（推荐方式）
+# 启动守护进程
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork
 
 # 指定 10 分钟间隔
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 10
-
-# 查看状态
-python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status
 ```
 
 ## 触发条件
@@ -49,11 +56,12 @@ python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py st
 当满足以下任一条件时触发：
 
 1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"、"配置 status-monitor"、"启动状态上传"
-2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"上传状态"等
-3. **查看状态**：用户发送"查看状态监控"、"状态监控状态"、"检查上传服务"
-4. **停止服务**：用户发送"停止状态监控"、"停止上传服务"
-5. **修改间隔**：用户发送"每10分钟同步一次"、"改成15分钟"等
-6. **重启服务**：用户发送"重启状态监控"、"重启上传服务"
+2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"上传状态"等 → 单次执行
+3. **定时同步**：OpenClaw cron 定时触发 → 单次执行
+4. **查看状态**：用户发送"查看状态监控"、"状态监控状态"、"检查上传服务"
+5. **停止服务**：用户发送"停止状态监控"、"停止上传服务"
+6. **修改间隔**：用户发送"每10分钟同步一次"、"改成15分钟"等
+7. **守护进程**：用户发送"启动守护进程"、"后台运行"等
 
 ## 初始化流程（首次使用必须执行）
 

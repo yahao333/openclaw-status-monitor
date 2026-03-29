@@ -55,22 +55,32 @@ Agent：...
 └─────────────┘     └──────────────┘     └─────────────────┘
 ```
 
-技能负责管理一个 Python 上传脚本，以守护进程方式运行。脚本只上传 Agent ID，业务逻辑由 Dashboard 处理：
+技能负责管理一个 Python 上传脚本。脚本只上传 Agent ID，业务逻辑由 Dashboard 处理：
 - 存储 Agent 元数据（名称、问候语等）
 - 计算在线/离线状态
 - 生成问候语和展示
 
-## 脚本管理命令
+## 两种运行模式
 
-### 基础管理 (status_uploader.py)
+### 模式一：Cron 定时同步（默认）
+
+OpenClaw 内置 cron 定时执行，单次调用上传脚本：
+
+```bash
+# OpenClaw cron 定时调用（无 start 参数）
+python3 scripts/status_uploader.py
+```
+
+### 模式二：守护进程模式
+
+需要持续后台运行时，使用 `--fork` 启动真正的守护进程：
 
 | 命令 | 说明 |
 |------|------|
-| `python3 scripts/status_uploader.py start` | 启动上传服务（默认5分钟间隔） |
-| `python3 scripts/status_uploader.py start --interval 10` | 启动并指定间隔（分钟） |
-| `python3 scripts/status_uploader.py stop` | 停止上传服务 |
-| `python3 scripts/status_uploader.py status` | 查看服务状态和当前间隔 |
-| `python3 scripts/status_uploader.py set-interval 10` | 设置同步间隔（分钟） |
+| `python3 scripts/status_uploader.py start --fork` | 启动守护进程 |
+| `python3 scripts/status_uploader.py start --fork --interval 10` | 启动并指定间隔（分钟） |
+| `python3 scripts/status_uploader.py stop` | 停止服务 |
+| `python3 scripts/status_uploader.py status` | 查看服务状态 |
 | `python3 scripts/status_uploader.py test` | 单次测试上传 |
 
 

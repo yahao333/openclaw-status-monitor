@@ -57,24 +57,32 @@ Then visit **https://openclaw-agent-monitor.vercel.app** to see your dashboard.
 └─────────────┘     └──────────────┘     └─────────────────┘
 ```
 
-The skill manages a Python uploader script that runs as a daemon. It only uploads agent IDs — the dashboard handles:
+The skill manages a Python uploader script. It only uploads agent IDs — the dashboard handles:
 - Storing agent metadata (name, greeting, etc.)
 - Calculating online/offline status
 - Generating greetings and display
 
-## Script Management
+## Two Running Modes
 
-The skill provides simple commands to manage the uploader:
+### Mode 1: Cron Sync (Default)
 
-### Basic Management (status_uploader.py)
+OpenClaw's built-in cron executes the script periodically:
+
+```bash
+# OpenClaw cron calls this periodically (single execution)
+python3 scripts/status_uploader.py
+```
+
+### Mode 2: Daemon Mode
+
+For continuous background running, use `--fork`:
 
 | Command | Description |
 |---------|-------------|
-| `python3 scripts/status_uploader.py start` | Start the uploader daemon |
-| `python3 scripts/status_uploader.py start --interval 10` | Start with custom interval (minutes) |
-| `python3 scripts/status_uploader.py stop` | Stop the uploader daemon |
-| `python3 scripts/status_uploader.py status` | Check daemon status and interval |
-| `python3 scripts/status_uploader.py set-interval 10` | Change sync interval |
+| `python3 scripts/status_uploader.py start --fork` | Start daemon in background |
+| `python3 scripts/status_uploader.py start --fork --interval 10` | Start with custom interval (minutes) |
+| `python3 scripts/status_uploader.py stop` | Stop the daemon |
+| `python3 scripts/status_uploader.py status` | Check daemon status |
 | `python3 scripts/status_uploader.py test` | Run a one-time upload test |
 
 

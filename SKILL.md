@@ -1,6 +1,6 @@
 ---
 name: openclaw-status-monitor
-description: 管理 OpenClaw Agent 状态上传脚本，定时将 Agent 在线状态同步到云端监控平台
+description: Manages OpenClaw Agent status upload scripts, periodically syncing agent online status to the cloud monitoring platform
 author: yanghao
 version: 4.0.0
 metadata:

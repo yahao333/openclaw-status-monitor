@@ -63,6 +63,8 @@ python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py st
 6. **修改间隔**：用户发送"每10分钟同步一次"、"改成15分钟"等
 7. **守护进程**：用户发送"启动状态监控"、"启动守护进程"、"后台运行"等 → 执行 `start --fork`
 
+**触发命令**：说"启动status-monitor服务"、"重启status-monitor服务"等.
+
 ## 初始化流程（首次使用必须执行）
 
 ### 第一步：检查 Token 配置

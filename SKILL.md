@@ -10,167 +10,166 @@ metadata:
     user-invocable: true
 ---
 
-## 脚本位置
+## Script Location
 
 ```
 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py
 ```
 
-## 两种运行模式
+## Two Running Modes
 
-### 模式一：Cron 定时同步（默认）
+### Mode 1: Cron Scheduled Sync (Default)
 
-OpenClaw 内置 cron 定时执行，单次调用上传脚本：
+OpenClaw's built-in cron executes the script periodically:
 
 ```bash
-# OpenClaw cron 定时调用（无 start 参数）
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py
 ```
 
-**触发命令**：说"同步状态"、"重启同步状态"等，OpenClaw 会定时触发执行。
+**Trigger phrases**: say "sync status", "restart sync" or "同步状态", "重启同步状态" — OpenClaw will trigger execution on schedule.
 
-### 模式二：守护进程模式
+### Mode 2: Daemon Mode
 
-需要持续后台运行时，使用 `--fork` 启动真正的守护进程：
+Use `--fork` to start a real background daemon:
 
-| 命令 | 说明 |
-|------|------|
-| `python3 scripts/status_uploader.py start --fork` | 启动守护进程 |
-| `python3 scripts/status_uploader.py start --fork --interval 10` | 启动并指定间隔（分钟） |
-| `python3 scripts/status_uploader.py stop` | 停止服务 |
-| `python3 scripts/status_uploader.py status` | 查看服务状态 |
-| `python3 scripts/status_uploader.py set-interval <分钟>` | 设置同步间隔 |
-| `python3 scripts/status_uploader.py test` | 单次测试上传 |
+| Command | Description |
+|---------|-------------|
+| `python3 scripts/status_uploader.py start --fork` | Start daemon |
+| `python3 scripts/status_uploader.py start --fork --interval 10` | Start with custom interval (minutes) |
+| `python3 scripts/status_uploader.py stop` | Stop service |
+| `python3 scripts/status_uploader.py status` | Check service status |
+| `python3 scripts/status_uploader.py set-interval <minutes>` | Set sync interval |
+| `python3 scripts/status_uploader.py test` | Single test upload |
 
-**示例：**
+**Examples:**
 ```bash
-# 启动守护进程
+# Start daemon
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork
 
-# 指定 10 分钟间隔
+# Start with 10-minute interval
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 10
 ```
 
-## 触发条件
+## Trigger Conditions
 
-当满足以下任一条件时触发：
+Triggers when any of the following conditions are met:
 
-1. **首次初始化**：用户说"启用状态监控"、"开启监控同步"、"配置 status-monitor"
-2. **手动触发**：用户发送"同步状态"、"同步 status-monitor"、"上传状态"等 → 单次执行
-3. **定时同步**：OpenClaw cron 定时触发 → 单次执行
-4. **查看状态**：用户发送"查看状态监控"、"状态监控状态"、"检查上传服务"
-5. **停止服务**：用户发送"停止状态监控"、"停止上传服务"
-6. **修改间隔**：用户发送"每10分钟同步一次"、"改成15分钟"等
-7. **守护进程**：用户发送"启动状态监控"、"启动守护进程"、"后台运行"等 → 执行 `start --fork`
+1. **First-time initialization**: say "enable status monitor", "setup status-monitor" or "启用状态监控", "开启监控同步", "配置 status-monitor"
+2. **Manual trigger**: say "sync status", "sync status-monitor", "upload status" or "同步状态", "同步 status-monitor", "上传状态" → single execution
+3. **Scheduled sync**: OpenClaw cron triggers → single execution
+4. **Check status**: say "check status monitor", "monitor status", "check upload service" or "查看状态监控", "状态监控状态", "检查上传服务"
+5. **Stop service**: say "stop status monitor", "stop upload service" or "停止状态监控", "停止上传服务"
+6. **Change interval**: say "sync every 10 minutes", "change to 15 minutes" or "每10分钟同步一次", "改成15分钟"
+7. **Daemon mode**: say "start status monitor", "start daemon", "run in background" or "启动状态监控", "启动守护进程", "后台运行" → execute `start --fork`
 
-**触发命令**：说"启动status-monitor服务"、"重启status-monitor服务"等.
+**Additional triggers**: say "start status-monitor service", "restart status-monitor service" or "启动status-monitor服务", "重启status-monitor服务".
 
-## 初始化流程（首次使用必须执行）
+## Initialization Flow (Must Execute on First Use)
 
-### 第一步：检查 Token 配置
+### Step 1: Check Token Configuration
 
-执行技能时，首先检查以下位置是否有 Token：
+When the skill runs, first check for the token in these locations:
 
-1. 环境变量 `MONITOR_PLATFORM_TOKEN`
-2. 文件 `~/.openclaw/credentials/openclaw-status-monitor.json`
+1. Environment variable `MONITOR_PLATFORM_TOKEN`
+2. File `~/.openclaw/credentials/openclaw-status-monitor.json`
 
-### 第二步：Token 不存在时的处理
+### Step 2: Handling Missing Token
 
-如果未找到 Token，必须引导用户注册/登录：
+If no token is found, guide the user to register/login:
 
-1. **提示用户**：
+1. **Prompt the user**:
    ```
-   检测到未配置监控 Token，正在引导您完成设置...
+   No monitoring token found. Let me help you set up...
 
-   请选择登录方式：
-   1. 已有账号：访问 https://openclaw-agent-monitor.vercel.app 点击 Sign In 使用 Clerk 登录
-   2. 新用户：访问 https://openclaw-agent-monitor.vercel.app 点击 Sign Up 注册
+   Please choose a sign-in method:
+   1. Existing user: visit https://openclaw-agent-monitor.vercel.app and click Sign In
+   2. New user: visit https://openclaw-agent-monitor.vercel.app and click Sign Up
 
-   登录后：
-   - 进入 Settings 页面
-   - 生成并复制 Agent Token
-   - 告诉我生成的 Token
+   After signing in:
+   - Go to the Settings page
+   - Generate and copy your Agent Token
+   - Send me the generated token
    ```
 
-2. **等待用户回复 Token**
+2. **Wait for user to reply with token**
 
-3. **保存 Token**：
-   - 创建目录 `~/.openclaw/credentials/`
-   - 保存到 `~/.openclaw/credentials/openclaw-status-monitor.json`：
+3. **Save the token**:
+   - Create directory `~/.openclaw/credentials/`
+   - Save to `~/.openclaw/credentials/openclaw-status-monitor.json`:
      ```json
      {
-       "agentToken": "用户提供的token",
+       "agentToken": "user-provided-token",
        "createdAt": "2026-03-29T10:00:00.000Z",
        "monitorUrl": "https://openclaw-agent-monitor.vercel.app"
      }
      ```
 
-4. **验证 Token**
+4. **Validate the token**
 
-### 第三步：Token 验证成功后
+### Step 3: After Successful Token Validation
 
 ```
-✅ Token 配置成功！
+✅ Token configured successfully!
 
-正在启动上传服务...
-- 执行首次同步测试...
-- ✅ 服务启动成功！
+Starting upload service...
+- Running initial sync test...
+- ✅ Service started successfully!
 
-监控平台地址：https://openclaw-agent-monitor.vercel.app
-上传间隔：5 分钟
+Monitor platform: https://openclaw-agent-monitor.vercel.app
+Upload interval: 5 minutes
 
-启动命令：
+Start command:
 python3 scripts/status_uploader.py start --fork
 
-管理命令：
-- 说"同步状态"手动触发一次上传
-- 说"查看状态监控"检查服务状态
-- 说"停止状态监控"停止服务
-- 说"重启状态监控"重启服务
+Management commands:
+- Say "sync status" to manually trigger an upload
+- Say "check status monitor" to check service status
+- Say "stop status monitor" to stop the service
+- Say "restart status monitor" to restart the service
 ```
 
-## 核心功能：管理上传脚本
+## Core Functions: Managing the Upload Script
 
-### 1. 检查脚本是否存在
+### 1. Check if Script Exists
 
 ```bash
 if [ -f ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py ]; then
-  echo "脚本存在"
+  echo "Script exists"
 else
-  echo "脚本不存在"
+  echo "Script not found"
 fi
 ```
 
-### 2. 启动服务（推荐方式）
+### 2. Start Service (Recommended)
 
 ```bash
-# 使用 --fork 启动守护进程（推荐）
+# Start daemon with --fork (recommended)
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 10
 ```
 
-### 3. 设置同步间隔
+### 3. Set Sync Interval
 
 ```bash
-# 方式1：启动时指定
+# Method 1: specify at startup
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py start --fork --interval 15
 
-# 方式2：使用 set-interval 命令
+# Method 2: use set-interval command
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py set-interval 15
 ```
 
-### 4. 停止服务
+### 4. Stop Service
 
 ```bash
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py stop
 ```
 
-### 5. 检查服务状态
+### 5. Check Service Status
 
 ```bash
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py status
 ```
 
-### 6. 查看错误日志
+### 6. View Error Logs
 
 ```
 ~/.openclaw/logs/status_uploader_error.log
@@ -178,34 +177,34 @@ python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py st
 ```
 
 ```bash
-# 查看最近错误
+# View recent errors
 tail -50 ~/.openclaw/logs/status_uploader_error.log
 
-# 查看服务运行日志
+# View service logs
 tail -50 ~/.openclaw/logs/status_uploader.log
 ```
 
-**日志轮转**：日志文件超过 10MB 时自动轮转，格式为 `status_uploader.20260329_183500.log`
+**Log rotation**: log files auto-rotate when exceeding 10MB, format: `status_uploader.20260329_183500.log`
 
-### 7. 手动触发一次上传
+### 7. Manually Trigger One Upload
 
 ```bash
 python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py test
 ```
 
-### 上传逻辑（简化版）
+### Upload Logic (Simplified)
 
-脚本只负责从 `openclaw.json` 读取所有 agent ID 并上传，**不做任何离线判断**。
+The script only reads all agent IDs from `openclaw.json` and uploads them — **it does not perform any offline detection**.
 
-离线判断由监控平台（openclaw-agent-monitor）处理：
-- 监控平台根据上传时间自动更新 `lastActiveTimestamp`
-- 如果超过 5 分钟没有上传，监控平台自动标记为离线
+Offline detection is handled by the monitoring platform (openclaw-agent-monitor):
+- The platform automatically updates `lastActiveTimestamp` based on upload time
+- If no upload is received for 5+ minutes, the platform automatically marks the agent as offline
 
-## 存储配置
+## Storage Configuration
 
-### Token 存储位置
+### Token Storage Location
 
-`~/.openclaw/credentials/openclaw-status-monitor.json`：
+`~/.openclaw/credentials/openclaw-status-monitor.json`:
 
 ```json
 {
@@ -216,163 +215,163 @@ python3 ~/.openclaw/skills/openclaw-status-monitor/scripts/status_uploader.py te
 }
 ```
 
-## 日志位置
+## Log Locations
 
-- 服务日志：`~/.openclaw/logs/status_uploader.log`
-- 错误日志：`~/.openclaw/logs/status_uploader_error.log`
-- PID 文件：`~/.openclaw/logs/status_uploader.pid`
-- Token 配置：`~/.openclaw/credentials/openclaw-status-monitor.json`
+- Service log: `~/.openclaw/logs/status_uploader.log`
+- Error log: `~/.openclaw/logs/status_uploader_error.log`
+- PID file: `~/.openclaw/logs/status_uploader.pid`
+- Token config: `~/.openclaw/credentials/openclaw-status-monitor.json`
 
-## 错误处理
+## Error Handling
 
-### 1. 缺少 Token
+### 1. Missing Token
 
-**初始化时**：
+**During initialization**:
 ```
-❌ 未检测到监控 Token
+❌ No monitoring token detected
 
-请先完成以下步骤：
+Please complete these steps first:
 
-1. 访问 https://openclaw-agent-monitor.vercel.app
-2. 点击 Sign In / Sign Up 登录或注册账号
-3. 登录后在 Settings 页面生成 Agent Token
-4. 将 Token 发送给我
+1. Visit https://openclaw-agent-monitor.vercel.app
+2. Click Sign In / Sign Up to log in or register
+3. After logging in, generate an Agent Token on the Settings page
+4. Send me the token
 
-示例：我的 Token 是 abc123-def456...
-```
-
-### 2. 脚本不存在
-
-```
-❌ 上传脚本不存在
-
-请重新安装技能或联系开发者。
+Example: My token is abc123-def456...
 ```
 
-### 3. 服务启动失败
+### 2. Script Not Found
 
-检查错误日志：
+```
+❌ Upload script not found
+
+Please reinstall the skill or contact the developer.
+```
+
+### 3. Service Start Failed
+
+Check the error log:
 ```
 cat ~/.openclaw/logs/status_uploader_error.log
 ```
 
-常见错误：
-- Token 未配置
-- 网络连接失败
-- 端口被占用
+Common errors:
+- Token not configured
+- Network connection failed
+- Port already in use
 
-### 4. Token 无效
+### 4. Invalid Token
 
 ```
-❌ Token 验证失败
+❌ Token validation failed
 
-您提供的 Token 可能已过期或无效。
+Your token may have expired or is invalid.
 
-请重新获取 Token：
-1. 登录 https://openclaw-agent-monitor.vercel.app
-2. 进入 Settings 页面
-3. 点击 Generate 生成新 Token
-4. 将新 Token 发送给我
+Please obtain a new token:
+1. Log in to https://openclaw-agent-monitor.vercel.app
+2. Go to the Settings page
+3. Click Generate to create a new Token
+4. Send me the new token
 ```
 
-## 示例对话
+## Example Conversations
 
-### 首次启用
+### First-time Enable
 
-**User:** 启用状态监控
+**User:** 启用状态监控 / enable status monitor
 **Agent:**
-正在检查监控配置...
+Checking monitoring configuration...
 
-❌ 未检测到 Agent Token
+❌ No Agent Token detected
 
-请先完成以下步骤：
+Please complete these steps first:
 
-1. 访问 https://openclaw-agent-monitor.vercel.app
-2. 点击 **Sign In** 登录（支持 Google/GitHub 等）
-3. 登录后在 **Settings** 页面生成 Agent Token
-4. 将 Token 发送给我
+1. Visit https://openclaw-agent-monitor.vercel.app
+2. Click **Sign In** (supports Google/GitHub, etc.)
+3. After logging in, generate an Agent Token on the **Settings** page
+4. Send me the token
 
 ---
 
-**User:** 我的 Token 是 e2d3262f-b626-4850-af11-5f2cb1c0dcad
+**User:** 我的 Token 是 e2d3262f-b626-4850-af11-5f2cb1c0dcad / My token is e2d3262f-b626-4850-af11-5f2cb1c0dcad
 **Agent:**
-正在验证 Token...
+Validating token...
 
-✅ Token 验证成功！
+✅ Token validated successfully!
 
-正在启动上传服务...
-- 执行首次同步测试...
-- ✅ 服务启动成功！
+Starting upload service...
+- Running initial sync test...
+- ✅ Service started successfully!
 
 ---
 
-✅ **状态监控已启用！**
+✅ **Status monitor enabled!**
 
-- 监控平台：https://openclaw-agent-monitor.vercel.app
-- 上传间隔：5 分钟
-- 服务状态：运行中
+- Monitor platform: https://openclaw-agent-monitor.vercel.app
+- Upload interval: 5 minutes
+- Service status: running
 
-管理命令：
-- 说"同步状态"手动触发一次上传
-- 说"查看状态监控"检查服务状态
-- 说"停止状态监控"停止服务
+Management commands:
+- Say "sync status" / "同步状态" to manually trigger an upload
+- Say "check status monitor" / "查看状态监控" to check service status
+- Say "stop status monitor" / "停止状态监控" to stop the service
 
-### 查看服务状态
+### Check Service Status
 
-**User:** 查看状态监控
+**User:** 查看状态监控 / check status monitor
 **Agent:**
-正在检查上传服务状态...
+Checking upload service status...
 
-✅ 服务正在运行
+✅ Service is running
    PID: 12345
-   同步间隔: 5 分钟
-   日志文件: ~/.openclaw/logs/status_uploader.log
+   Sync interval: 5 minutes
+   Log file: ~/.openclaw/logs/status_uploader.log
 
-最近运行日志：
+Recent logs:
 ```
-2026-03-29 10:30:01 - INFO - 上传成功: ['main', 'coding']
-2026-03-29 10:35:02 - INFO - 上传成功: ['main', 'coding']
+2026-03-29 10:30:01 - INFO - Upload success: ['main', 'coding']
+2026-03-29 10:35:02 - INFO - Upload success: ['main', 'coding']
 ```
 
-错误日志：无
+Error log: none
 
-### 停止服务
+### Stop Service
 
-**User:** 停止状态监控
+**User:** 停止状态监控 / stop status monitor
 **Agent:**
-正在停止上传服务...
+Stopping upload service...
 
-✅ 服务已停止
+✅ Service stopped
 
-如需重新启动，请说"启动状态监控"。
+To restart, say "start status monitor" / "启动状态监控".
 
-### 手动同步
+### Manual Sync
 
-**User:** 同步状态
+**User:** 同步状态 / sync status
 **Agent:**
-正在执行手动上传...
+Executing manual upload...
 
-在线 Agent：['main', 'coding']
-上传结果：✅ 成功
+Online agents: ['main', 'coding']
+Upload result: ✅ Success
 
-### 重启服务
+### Restart Service
 
-**User:** 重启状态监控
+**User:** 重启状态监控 / restart status monitor
 **Agent:**
-正在重启上传服务...
+Restarting upload service...
 
-✅ 服务已重启，PID: 67890
+✅ Service restarted, PID: 67890
 
-### 检查错误
+### Check Errors
 
-**User:** 查看状态监控错误日志
+**User:** 查看状态监控错误日志 / check status monitor error log
 **Agent:**
-正在检查错误日志...
+Checking error logs...
 
-最近错误：
+Recent errors:
 ```
 2026-03-29 09:15:03 - HTTP 401: Unauthorized
 2026-03-29 09:20:01 - Network: [Errno 8] nodename nor servname provided
 ```
 
-建议：请检查 Token 是否正确，或检查网络连接。
+Suggestion: Check if the token is correct, or check your network connection.
